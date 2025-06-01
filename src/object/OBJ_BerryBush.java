@@ -1,22 +1,14 @@
 package object;
 
-import java.io.IOException;
+import entity.Entity;
+import main.GamePanel;
 
-import javax.imageio.ImageIO;
+public class OBJ_BerryBush extends Entity {
 
-public class OBJ_BerryBush extends SuperObject{
-
-    public OBJ_BerryBush() {
-        
+    public OBJ_BerryBush(GamePanel gp) {
+        super(gp);
         name = "BerryBush";
-        try {
-            image = ImageIO.read(getClass().getResourceAsStream("/res/objects/berrybush.png"));
-            System.out.println("Loaded image: BerryBush");
-
-        }catch (IOException e) {
-            e.printStackTrace();
-            System.exit(0);
-        }
+        down1 = setup("/res/objects/berrybush");
         collision = true;
     }
 

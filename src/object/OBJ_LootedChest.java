@@ -4,19 +4,15 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
-public class OBJ_LootedChest extends SuperObject{
+import entity.Entity;
+import main.GamePanel;
 
-    public OBJ_LootedChest() {
-        
+public class OBJ_LootedChest extends Entity {
+
+    public OBJ_LootedChest(GamePanel gp) {
+        super(gp);
         name = "LootedChest";
-        try {
-            image = ImageIO.read(getClass().getResourceAsStream("/res/objects/openedchest.png"));
-            System.out.println("Loaded image: LootedChest");
-
-        }catch (IOException e) {
-            e.printStackTrace();
-            System.exit(0);
-        }
+        down1 = setup("/res/objects/openedchest");
         collision = true;
     }
 

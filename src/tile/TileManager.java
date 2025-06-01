@@ -30,7 +30,7 @@ public class TileManager {
         // Load the map file. The map file is a text file that contains the tile numbers for each tile in the map.
         // Type the file path /res/maps/YOURMAP.txt
         //
-        loadMap("/res/maps/map02.txt");
+        loadMap("/res/maps/map02.map");
     }
 
     public void getTileImage() {

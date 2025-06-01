@@ -8,17 +8,22 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import ai.PathFinder;
+import entity.Entity;
 import entity.Player;
-import object.SuperObject;
-import tile.TileManager;
-
+import item.ItemManager;
+import tile.TileManager; 
 public class GamePanel extends JPanel implements Runnable {
 
     // SCREEN SETTINGS
@@ -43,17 +48,26 @@ public class GamePanel extends JPanel implements Runnable {
     int drawCount = 0; // Declare drawCount as a class-level variable
 
     // SYSTEM
-    TileManager tileM = new TileManager(this);
-    KeyHandler keyH = new KeyHandler(this);
+    public TileManager tileM = new TileManager(this);
+    public KeyHandler keyH = new KeyHandler(this);
     public CollisionChecker cChecker = new CollisionChecker(this);
     public AssetSetter aSetter = new AssetSetter(this);
+    public ItemManager itemM = new ItemManager();
     public UI ui = new UI(this);
+    public EventHandler eHandler = new EventHandler(this);
+    public PathFinder pFinder = new PathFinder(this);
+    public Entity entity;
     Main main = new Main();
     Thread gameThread;
 
     // ENTITY AND OBJECT
     public Player player = new Player(this, keyH);
-    public SuperObject obj[] = new SuperObject[50];
+    public Entity obj[] = new Entity[30];
+    public Entity npc[] = new Entity[10];
+    public Entity monster[] = new Entity[20];
+    
+    ArrayList<Entity> entityList = new ArrayList<>();
+    public ArrayList<Entity> projectileList = new ArrayList<>();
 
     // GAME STATE
     public int gameState;
@@ -66,8 +80,6 @@ public class GamePanel extends JPanel implements Runnable {
 
 
     public int tick = 0;
-    // INVENTORY
-    public ArrayList<SuperObject> inventory = new ArrayList<>();
 
     // FULLSCREEN
     private GraphicsDevice graphicsDevice;
@@ -78,6 +90,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.setBackground(Color.black);
         this.setDoubleBuffered(true);
         this.addKeyListener(keyH);
+        this.addMouseListener(keyH);
         this.setFocusable(true);
 
         // Get the default screen device for fullscreen mode
@@ -94,8 +107,17 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void setupGame() {
         aSetter.setObject();
+        aSetter.setNPC();
+        aSetter.setMonster();
+        player.setDefaultValues();
+        player.inventory.clear();
+        player.setItems();
         gameState = titleState;
+        player.health = player.defaultHealth;
+        ui.holding = "none";
+        ui.weaponSlot = "none";
     }
+
     public void restartGame() {
         // Reset player state
         player.setDefaultValues();
@@ -139,23 +161,39 @@ public class GamePanel extends JPanel implements Runnable {
                 drawCount++;
             }
 
-            if (timer >= 1000000000) {
-                if (keyH.debugMode == true) {
-                    System.out.println("FPS: " + drawCount);
-                }
-                drawCount = 0;
-                timer = 0;
-                if(gameState != titleState && gameState != pauseState)
                 tick++;
             }
         }
-    }
+    
     public void update() {
         if (gameState == playState) {
             player.update();
-        }
-        if (gameState == pauseState) {
-            // do nothing
+
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) {
+                    npc[i].update();
+                }
+            }
+            for (int i = 0; i < monster.length; i++) {
+                if (monster[i] != null) {
+                    if (monster[i].alive == true && monster[i].dying == false) {
+                        monster[i].update();
+                    }
+                    if (monster[i].alive == false) {
+                        monster[i] = null;
+                    }
+                }
+            }
+            for (int i = 0; i < projectileList.size(); i++) {
+                if (projectileList.get(i) != null) {
+                    if (projectileList.get(i).alive == true) {
+                        projectileList.get(i).update();
+                    }
+                    if (projectileList.get(i).alive == false) {
+                        projectileList.remove(i);
+                    }
+                }
+            }
         }
     }
 
@@ -171,15 +209,58 @@ public class GamePanel extends JPanel implements Runnable {
             // TILES
             tileM.draw(g2);
 
-            // OBJECTS
-            for (int i = 0; i < obj.length; i++) {
-                if (obj[i] != null) {
-                    obj[i].draw(g2, this);
+            // PLAYER
+
+            entityList.add(player);
+
+            // NPC
+
+            for(int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) {
+                    entityList.add(npc[i]);
+                }
+            }
+            // MONSTERS
+            for (int i = 0; i < monster.length; i++) {
+                if (monster[i] != null) {
+                    entityList.add(monster[i]);
                 }
             }
 
-            // PLAYER
-            player.draw(g2);
+            // OBJECTS
+
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null) {
+                    entityList.add(obj[i]);
+                }
+            }
+
+            // PROJECTILES
+
+            for (int i = 0; i < projectileList.size(); i++) {
+                if(projectileList.get(i) != null) {
+                    entityList.add(projectileList.get(i));
+                }
+            }
+
+            // SORT
+            Collections.sort(entityList, new Comparator<Entity>() {
+
+                @Override
+                public int compare(Entity e1, Entity e2) {
+
+                    int result = Integer.compare(e1.worldY, e2.worldY);
+                    return result;
+                    
+                }
+                
+            });
+            
+            // DRAW ENTITIES
+            for (int i = 0; i < entityList.size(); i++) {
+                entityList.get(i).draw(g2);
+            }
+            entityList.clear();
 
             // UI
             ui.draw(g2);
@@ -190,8 +271,8 @@ public class GamePanel extends JPanel implements Runnable {
             g2.setColor(Color.white);
             g2.setFont(Jersey.deriveFont(Font.PLAIN, 40F));
             g2.drawString("Game Version: " + main.gameVersion, 10, 50);
-            g2.drawString("Player X: " + player.worldX, 10, 75);
-            g2.drawString("Player Y: " + player.worldY, 10, 100);
+            g2.drawString("Player X: " + player.worldX / tileSize, 10, 75);
+            g2.drawString("Player Y: " + player.worldY / tileSize, 10, 100);
             g2.drawString("Player Speed: " + player.speed, 10, 125);
             g2.drawString("Player Direction: " + player.direction, 10, 150);
             g2.drawString("Health: " + player.health, 10, 175);
@@ -200,11 +281,6 @@ public class GamePanel extends JPanel implements Runnable {
         g2.dispose();
     }
 
-    // Method to add an item to the inventory
-    public void addToInventory(SuperObject item) {
-        inventory.add(item);
-        System.out.println(item.name + " added to inventory.");
-    }
 
     // Method to toggle fullscreen mode
     public void toggleFullscreen(JFrame frame) {
@@ -219,6 +295,20 @@ public class GamePanel extends JPanel implements Runnable {
             frame.setUndecorated(false); // Restore window borders
             frame.setVisible(true); // Make the frame visible again
             isFullscreen = false;
+        }
+    }
+
+    // Method to update monster position based on player position
+    public void updateMonsterPosition(int worldX, int worldY, int playerX, int playerY, int speed) {
+        int distanceX = Math.abs(worldX - playerX);
+        int distanceY = Math.abs(worldY - playerY);
+
+        if (distanceX > tileSize / 2 || distanceY > tileSize / 2) {
+            if (worldX < playerX) worldX += speed;
+            else if (worldX > playerX) worldX -= speed;
+
+            if (worldY < playerY) worldY += speed;
+            else if (worldY > playerY) worldY -= speed;
         }
     }
 }
