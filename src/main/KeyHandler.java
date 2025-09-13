@@ -157,6 +157,10 @@ public class KeyHandler implements KeyListener, MouseListener {
         if(code == KeyEvent.VK_R) {
             rPressed = true;
         }
+        // Farm action key
+        if (code == KeyEvent.VK_T) {
+            gp.player.farmAction = true;
+        }
     }
 
     private void handleDialogueStateKeys(int code) {
@@ -196,7 +200,7 @@ public class KeyHandler implements KeyListener, MouseListener {
         if (code == KeyEvent.VK_E) gp.player.ePressed = false;
         if (code == KeyEvent.VK_SPACE) gp.player.spacePressed = false; gp.player.defending = false; gp.player.invincible = false;
         if (code == KeyEvent.VK_R) rPressed = false;
-
+        if (code == KeyEvent.VK_T) gp.player.farmAction = false;
     }
 
     // --- MouseListener methods ---

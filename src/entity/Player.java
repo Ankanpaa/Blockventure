@@ -50,6 +50,7 @@ public class Player extends Entity {
     public int attackCooldown = 25;
     public int defence = 0;
     public boolean defending;
+    public boolean farmAction = false; // added for farming interactions
 
     public Player(GamePanel gp, KeyHandler keyH) {
         super(gp); // Explicitly call the constructor of the Entity class
@@ -356,6 +357,12 @@ public class Player extends Entity {
             keyH.enterPressed = false;
         }
 
+        // INTERACTION: farm action (plant/water/harvest)
+        if (farmAction) {
+            farmInteract();
+            farmAction = false;
+        }
+
         if (invincible) {
             invincibleCounter++;
             if (invincibleCounter > 60) {
@@ -637,5 +644,56 @@ public class Player extends Entity {
             gp.ui.addMessage("Looted Chest! Got: " + item);
             gp.player.inventory.add(itemM.getItem(item));
         }
+    }
+
+    public void farmInteract() {
+        // determine target tile in front of player
+        int playerCol = (worldX + solidArea.x) / gp.tileSize;
+        int playerRow = (worldY + solidArea.y) / gp.tileSize;
+        int targetCol = playerCol;
+        int targetRow = playerRow;
+        switch (direction) {
+            case "up": targetRow = playerRow - 1; break;
+            case "down": targetRow = playerRow + 1; break;
+            case "left": targetCol = playerCol - 1; break;
+            case "right": targetCol = playerCol + 1; break;
+        }
+
+        // Plant if tile empty and holding a seed-like item
+        String holding = gp.ui.holding;
+        if ((holding != null) && (holding.equals("Carrots") || holding.equals("Raw Berry"))) {
+            String seedType = holding.equals("Carrots") ? "carrot" : "berry";
+            boolean planted = gp.cropM.plantCrop(targetCol, targetRow, seedType, 10, 3); // 10 sec/stage, 3 stages
+            if (planted) {
+                gp.ui.holding = "none";
+                gp.ui.addMessage("Planted " + seedType + " seed.");
+            } else {
+                gp.ui.addMessage("Cannot plant here.");
+            }
+            return;
+        }
+
+        // Water if holding Water Bottle
+        if (holding != null && holding.equals("Potion")) {
+            boolean watered = gp.cropM.waterCrop(targetCol, targetRow);
+            if (watered) {
+                // Optionally consume water bottle
+                // gp.ui.holding = "none";
+                gp.ui.addMessage("Watered the crop.");
+            } else {
+                gp.ui.addMessage("No crop to water.");
+            }
+            return;
+        }
+
+        // Harvest if crop ready
+        String product = gp.cropM.harvestCrop(targetCol, targetRow);
+        if (product != null) {
+            gp.player.inventory.add(gp.itemM.getItem(product));
+            gp.ui.addMessage("Harvested " + product + "!");
+            return;
+        }
+
+        gp.ui.addMessage("Nothing to do here.");
     }
 }

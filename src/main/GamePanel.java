@@ -44,7 +44,7 @@ public class GamePanel extends JPanel implements Runnable {
     public final int worldHeight = tileSize * maxWorldRow;
 
     // FPS
-    int FPS = 60;
+    public int FPS = 60;
     int drawCount = 0; // Declare drawCount as a class-level variable
 
     // SYSTEM
@@ -59,6 +59,9 @@ public class GamePanel extends JPanel implements Runnable {
     public Entity entity;
     Main main = new Main();
     Thread gameThread;
+
+    // Add CropManager
+    public farming.CropManager cropM = new farming.CropManager(this);
 
     // ENTITY AND OBJECT
     public Player player = new Player(this, keyH);
@@ -169,6 +172,9 @@ public class GamePanel extends JPanel implements Runnable {
         if (gameState == playState) {
             player.update();
 
+            // update crops (pass 1 frame per game loop)
+            cropM.updateAll(1);
+
             for (int i = 0; i < npc.length; i++) {
                 if (npc[i] != null) {
                     npc[i].update();
@@ -208,6 +214,9 @@ public class GamePanel extends JPanel implements Runnable {
         } else {
             // TILES
             tileM.draw(g2);
+
+            // draw crops under entities
+            if (cropM != null) cropM.draw(g2);
 
             // PLAYER
 
