@@ -661,8 +661,8 @@ public class Player extends Entity {
 
         // Plant if tile empty and holding a seed-like item
         String holding = gp.ui.holding;
-        if ((holding != null) && (holding.equals("Carrots") || holding.equals("Raw Berry"))) {
-            String seedType = holding.equals("Carrots") ? "carrot" : "berry";
+        if ((holding != null) && (holding.equals("Carrot Seeds") || holding.equals("Raw Berry"))) {
+            String seedType = holding.equals("Carrot Seeds") ? "carrot" : "berry";
             boolean planted = gp.cropM.plantCrop(targetCol, targetRow, seedType, 10, 3); // 10 sec/stage, 3 stages
             if (planted) {
                 gp.ui.holding = "none";
@@ -687,10 +687,22 @@ public class Player extends Entity {
         }
 
         // Harvest if crop ready
-        String product = gp.cropM.harvestCrop(targetCol, targetRow);
-        if (product != null) {
-            gp.player.inventory.add(gp.itemM.getItem(product));
-            gp.ui.addMessage("Harvested " + product + "!");
+        java.util.List<String> products = gp.cropM.harvestCrop(targetCol, targetRow);
+        if (products != null && !products.isEmpty()) {
+            for (String prod : products) {
+                inventory.add(itemM.getItem(prod));
+            }
+            // build a simple summary message (Carrots, Carrots, Carrot Seeds -> Carrots x2, Carrot Seeds x1)
+            java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+            for (String prod : products) counts.put(prod, counts.getOrDefault(prod, 0) + 1);
+            StringBuilder msg = new StringBuilder("Harvested ");
+            boolean first = true;
+            for (java.util.Map.Entry<String,Integer> e : counts.entrySet()) {
+                if (!first) msg.append(", ");
+                msg.append(e.getKey()).append(" x").append(e.getValue());
+                first = false;
+            }
+            gp.ui.addMessage(msg.toString() + "!");
             return;
         }
 

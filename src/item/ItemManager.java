@@ -112,6 +112,12 @@ public class ItemManager {
             75,
             loadImage("/res/guis/shield_shadow.png")
         ));
+        items.put("Carrot Seeds", new Item(
+            "Carrot Seeds",
+            "Used to plant carrots.",
+            0,
+            loadImage("/res/items/missingtexture.png")
+        ));
     }
 
     private BufferedImage loadImage(String path) {

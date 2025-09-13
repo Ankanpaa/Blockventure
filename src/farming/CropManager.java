@@ -78,24 +78,41 @@ public class CropManager {
         return true;
     }
 
-    public String harvestCrop(int col, int row) {
+    public java.util.List<String> harvestCrop(int col, int row) {
         Point p = new Point(col, row);
         Crop c = crops.get(p);
         if (c == null || !c.isHarvestable()) return null;
-        String product;
+
+        java.util.List<String> drops = new java.util.ArrayList<>();
+        java.util.Random rand = new java.util.Random();
+
         switch (c.type.toLowerCase()) {
-            case "carrot":
-                product = "Carrots";
+            case "carrot": {
+                // carrots: 1-3 carrots, plus 0-2 seeds
+                int carrots = 1;
+                int seeds = 1 + rand.nextInt(2); // 1..2
+                for (int i = 0; i < carrots; i++) drops.add("Carrots");
+                for (int i = 0; i < seeds; i++) drops.add("Carrot Seeds");
                 break;
-            case "berry":
-                product = "Berry";
+            }
+            case "berry": {
+                // berries: 1-4 berries, small chance for extra raw berries
+                int berries = 1 + rand.nextInt(4); // 1..4
+                for (int i = 0; i < berries; i++) drops.add("Berry");
+                if (rand.nextInt(100) < 15) { // 15% chance extra raw berry
+                    drops.add("Raw Berry");
+                }
                 break;
-            default:
-                product = "Berry";
+            }
+            default: {
+                // fallback: 1 item of the generic product
+                drops.add("Berry");
                 break;
+            }
         }
+
         crops.remove(p);
-        return product;
+        return drops;
     }
 
     public void updateAll(int deltaFrames) {
